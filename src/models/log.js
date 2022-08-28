@@ -10,7 +10,7 @@ const RequestSchema = new Schema(
     requestUA: String,
     requestURL: String,
   },
-  { timestamps: false },
+  { _id: false, timestamps: false },
 );
 
 const ResponseSchema = new Schema(
@@ -18,19 +18,19 @@ const ResponseSchema = new Schema(
     responseCode: String,
     responseTimeMS: String,
   },
-  { timestamps: false },
+  { _id: false, timestamps: false },
 );
 
 const LogSchema = new Schema(
   {
     requestMetaData: {
       required: true,
-      type: [RequestSchema],
+      type: RequestSchema,
     },
 
     responseMetaData: {
       required: true,
-      type: [ResponseSchema],
+      type: ResponseSchema,
     },
 
     referrer: String,
