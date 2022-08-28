@@ -25,12 +25,12 @@ const LogSchema = new Schema(
   {
     requestMetaData: {
       required: true,
-      type: [RequestSchema],
+      type: RequestSchema,
     },
 
     responseMetaData: {
       required: true,
-      type: [ResponseSchema],
+      type: ResponseSchema,
     },
 
     referrer: String,
