@@ -10,6 +10,7 @@ const {
   updateUserById,
   deleteUserById,
   filterUsers,
+  getUserByEmail,
 } = require('../controllers/user');
 const { verifyUserHandler } = require('../helpers');
 
@@ -34,6 +35,14 @@ router.get('/:id', (req, res) => {
   const { select } = req._options;
 
   res.send(getUserById({ id, select }));
+});
+
+// get user by email 
+router.get('/:email', (req, res) => {
+  const { email } = req.params;
+  const { select } = req._options;
+
+  res.send(getUserByEmail({ email, select }));
 });
 
 // get carts by userId

@@ -8,7 +8,7 @@ const logger = require('./logger');
 const cleanRequest = require('./cleanRequest');
 
 // use database to store logs
-require('../db/mongoose');
+// require('../db/mongoose');
 
 function injectMiddleWares(app) {
   // enable compression.

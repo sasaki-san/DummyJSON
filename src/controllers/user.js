@@ -96,6 +96,16 @@ controller.getUserById = ({ id, select }) => {
   return user;
 };
 
+controller.getUserByEmail = ({ email, select }) => {
+  let user = frozenData.users.find(u => u.email === email)
+
+  if (select) {
+    user = getObjectSubset(user, select);
+  }
+
+  return user;
+};
+
 // add new user
 controller.addNewUser = ({ ...data }) => {
   const {
