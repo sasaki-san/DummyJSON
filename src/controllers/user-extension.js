@@ -42,6 +42,12 @@ const auth0PasswordsFormatStrategy = (options) => (user) => ({
   passwordHash: user.password_bcrypt_utf8
 })
 
+const auth0TotpFormatStrategy = (options) => (user) => ({
+  user_id: user.id,
+  otp_secret: options.mfa_totp_secret,
+  tenant: options.tenant,
+})
+
 const mfaFactorsPart = (options, user) => {
 
   const mfa_factors = []
@@ -105,22 +111,11 @@ const passwordHashPart = (options, user) => {
   }
 }
 
-const applyExportProps = (options, result) => {
-  switch (options.format) {
-    case "auth0_users": {
-      result.users = result
-        .users
-        .map(auth0UsersFormatStrategy(options))
-      return result
-    }
-    case "auth0_passwords": {
-      result.users = result
-        .users
-        .map(auth0PasswordsFormatStrategy(options))
-      return result
-    }
-    default: throw Error(`Undefined export format type: ${options.format}`)
-  }
+const applyExportProps = (strategy, options, result) => {
+  result.users = result
+    .users
+    .map(strategy(options))
+  return result
 }
 
 const applySelect = (options, result) => {
@@ -144,9 +139,33 @@ const applySelect = (options, result) => {
 
 }
 
+const validateOptions = (options, ...requiredParams) => {
+  for (let requiredParam of requiredParams) {
+    if (options[requiredParam] === undefined) {
+      throw Error(`The required parameter ${requiredParam} is missing in the query`)
+    }
+  }
+}
+
 controller.exportUsers = (options) => {
   const result = controller.getAllUsers({ limit: options.limit, skip: options.skip })
-  applyExportProps(options, result)
+  applyExportProps(auth0UsersFormatStrategy, options, result)
+  applySelect(options, result)
+  return result
+}
+
+controller.exportUserPasswords = (options) => {
+  validateOptions(options, "tenant", "connection")
+  const result = controller.getAllUsers({ limit: options.limit, skip: options.skip })
+  applyExportProps(auth0PasswordsFormatStrategy, options, result)
+  applySelect(options, result)
+  return result
+}
+
+controller.exportUserMfaTotp = (options) => {
+  validateOptions(options, "mfa_totp_secret", "tenant")
+  const result = controller.getAllUsers({ limit: options.limit, skip: options.skip })
+  applyExportProps(auth0TotpFormatStrategy, options, result)
   applySelect(options, result)
   return result
 }
