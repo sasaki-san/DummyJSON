@@ -23,8 +23,6 @@ const auth0UsersFormatStrategy = (options) => (user) => ({
     hair: user.hair,
     address: user.address
   },
-  ...mfaFactorsPart(options, user),
-  ...passwordHashPart(options, user)
 })
 
 const auth0PasswordsFormatStrategy = (options) => (user) => ({
@@ -39,77 +37,19 @@ const auth0PasswordsFormatStrategy = (options) => (user) => ({
   tenant: options.tenant,
   connection: options.connection,
   _tmp_is_unique: true,
-  passwordHash: user.password_bcrypt_utf8
 })
 
 const auth0TotpFormatStrategy = (options) => (user) => ({
-  user_id: user.id,
+  user_id: `${options.idPrefix}|${user.id}`,
   otp_secret: options.mfa_totp_secret,
   tenant: options.tenant,
 })
 
-const mfaFactorsPart = (options, user) => {
-
-  const mfa_factors = []
-
-  if (options.mfa_totp_secret) {
-    mfa_factors.push({ totp: { secret: options.mfa_totp_secret } })
-  }
-  if (options.mfa_phone_number) {
-    mfa_factors.push({ phone: { secret: options.mfa_phone_number } })
-  }
-  if (options.mfa_email) {
-    mfa_factors.push({ email: { value: options.mfa_email } })
-  }
-
-  return {
-    mfa_factors
-  }
-}
-
-const passwordHashPart = (options, user) => {
-
-  if (!options.password_params) {
-    return {}
-  }
-
-  const [password_algorithm, password_encoding = "hex"] = options.password_params.split(",")
-
-  if (password_algorithm === "bcrypt") {
-    return {
-      password_hash: user.password_bcrypt_utf8,
-    }
-  }
-
-  // with salt
-  if (options.salt_params) {
-    const [salt_encoding, salt_position = "prefix"] = options.salt_params.split(",")
-    return {
-      custom_password_hash: {
-        algorithm: password_algorithm,
-        hash: {
-          value: user[`password_${password_algorithm}_salt_${salt_position}_${password_encoding}`],
-          encoding: password_encoding
-        },
-        salt: {
-          value: user[`password_${password_algorithm}_salt_${salt_encoding}`],
-          encoding: salt_encoding
-        }
-      }
-    }
-  }
-
-  // without salt
-  return {
-    custom_password_hash: {
-      algorithm: password_algorithm,
-      hash: {
-        value: user[`password_${password_algorithm}_${password_encoding}`],
-        encoding: password_encoding
-      },
-    }
-  }
-}
+const auth0RecoveryCodeFormatStrategy = (options) => (user) => ({
+  user_id: `${options.id_prefix}|${user.id}`,
+  recovery_code: options.mfa_rc,
+  tenant: options.tenant,
+})
 
 const applyExportProps = (strategy, options, result) => {
   result.users = result
@@ -163,7 +103,7 @@ controller.exportUserPasswords = (options) => {
 }
 
 controller.exportUserMfaTotp = (options) => {
-  validateOptions(options, "mfa_totp_secret", "tenant")
+  validateOptions(options, "totpSecret", "tenant", "idPrefix")
   const result = controller.getAllUsers({ limit: options.limit, skip: options.skip })
   applyExportProps(auth0TotpFormatStrategy, options, result)
   applySelect(options, result)
