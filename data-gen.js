@@ -1,113 +1,84 @@
 const fs = require("fs")
-const crypto = require('crypto')
-const bcrypt = require("bcrypt")
-const users = require("./src/data/users.json")
+const users = require("./src/data/users copy.json")
+const { strategies } = require('./src/utils/hashStrategies')
 
+const cartesian = (...a) => a.reduce((a, b) => a.flatMap(d => b.map(e => [d, e].flat())));
 
-const withSalt = (plainPassword, salt, prefixed) => {
-  if (salt) {
-    if (prefixed) {
-      plainPassword = salt + plainPassword
-    } else {
-      plainPassword = plainPassword + salt
-    }
-  }
-  return plainPassword
-};
+const getUserSalt = (user) => `SALT_${user.email}`
 
-const setHashedPassword = (user, value, algorithm, encoding, salt, prefixed) => {
-  if (salt) {
-    if (prefixed) {
-      user[`password_${algorithm}_salt_prefix_${encoding}`] = value;
-    } else {
-      user[`password_${algorithm}_salt_suffix_${encoding}`] = value;
-    }
-    const buf = Buffer.from(salt, 'utf8')
-    user[`password_${algorithm}_salt_utf8`] = buf.toString('utf8');
-    user[`password_${algorithm}_salt_hex`] = buf.toString('hex');
-    user[`password_${algorithm}_salt_base64`] = buf.toString('base64');
-  } else {
-    user[`password_${algorithm}_${encoding}`] = value;
-  }
-  return true
-};
-
-const strategies = {
-
-  md5: async (user, salt, prefixed) => {
-    let plainPassword = withSalt(user.password, salt, prefixed);
-    ["hex", "base64"].forEach(encoding => {
-      const hash = crypto.createHash("md5");
-      const _ = hash.update(plainPassword);
-      const value = _.digest(encoding);
-      setHashedPassword(user, value, "md5", encoding, salt, prefixed);
-    });
-    return user
-  },
-
-  sha1: async (user, salt, prefixed) => {
-    let plainPassword = withSalt(user.password, salt, prefixed);
-    ["hex", "base64"].forEach(encoding => {
-      const hash = crypto.createHash("sha1");
-      const _ = hash.update(plainPassword);
-      const value = _.digest(encoding);
-      setHashedPassword(user, value, "sha1", encoding, salt, prefixed);
-    });
-    return user
-  },
-
-  sha256: async (user, salt, prefixed) => {
-    let plainPassword = withSalt(user.password, salt, prefixed);
-    ["hex", "base64"].forEach(encoding => {
-      const hash = crypto.createHash("sha256");
-      const _ = hash.update(plainPassword, "utf8")
-      const value = _.digest(encoding);
-      setHashedPassword(user, value, "sha256", encoding, salt, prefixed);
-    });
-    return user
-  },
-
-  sha512: async (user, salt, prefixed) => {
-    let plainPassword = withSalt(user.password, salt, prefixed);
-    ["hex", "base64"].forEach(encoding => {
-      const hash = crypto.createHash("sha512");
-      const _ = hash.update(plainPassword, 'utf-8');
-      const value = _.digest(encoding);
-      setHashedPassword(user, value, "sha512", encoding, salt, prefixed);
-    });
-    return user
-  },
-
-  bcrypt: async (user) => {
-    const plainPassword = user.password;
-    const saltRound = 10;
-    const salt = bcrypt.genSaltSync(saltRound);
-    const value = bcrypt.hashSync(plainPassword, salt);
-    const encoding = "utf8";
-    user[`password_bcrypt_${encoding}`] = value;
-    return user
-  },
-
+const propName = (paramsObj) => {
+  const keySplitter = "|"
+  const keyPairConnector = "_"
+  return Object.keys(paramsObj).reduce((p, c) => {
+    if (p.length > 0) { p += keySplitter }
+    p += `${c}${keyPairConnector}${paramsObj[c]}`
+    return p
+  }, "")
 }
 
-const getUserSalt = (user) => `This is the salt for ${user.firstName} ${user.lastName}`
+const getPasswordHashPartList = (user) => {
 
-const main = async () => {
-  let result = await Promise.all(users.map(user => strategies["md5"](user)))
-  result = await Promise.all(result.map(user => strategies["md5"](user, getUserSalt(user), true)))
-  result = await Promise.all(result.map(user => strategies["md5"](user, getUserSalt(user), false)))
-  result = await Promise.all(result.map(user => strategies["sha1"](user)))
-  result = await Promise.all(result.map(user => strategies["sha1"](user, getUserSalt(user), true)))
-  result = await Promise.all(result.map(user => strategies["sha1"](user, getUserSalt(user), false)))
-  result = await Promise.all(result.map(user => strategies["sha256"](user)))
-  result = await Promise.all(result.map(user => strategies["sha256"](user, getUserSalt(user), true)))
-  result = await Promise.all(result.map(user => strategies["sha256"](user, getUserSalt(user), false)))
-  result = await Promise.all(result.map(user => strategies["sha512"](user)))
-  result = await Promise.all(result.map(user => strategies["sha512"](user, getUserSalt(user), true)))
-  result = await Promise.all(result.map(user => strategies["sha512"](user, getUserSalt(user), false)))
-  result = await Promise.all(result.map(user => strategies["bcrypt"](user)))
-  let data = JSON.stringify(result, null, 2);
+  const salt = getUserSalt(user)
+
+  const props = [].concat(
+    cartesian(
+      ["md5", "sha1", "sha256", "sha512"],
+      ["hex", "base64"]
+    ).map(p => {
+      const [alg, enc] = p
+      return { [propName({ alg, enc })]: strategies[alg](user, enc) }
+    }),
+    cartesian(
+      ["md5", "sha1", "sha256", "sha512"],
+      ["hex", "base64"],
+      ["pre", "post"]
+    ).map(p => {
+      const [alg, enc, saltpos] = p
+      return { [propName({ alg, enc, saltpos })]: strategies[alg](user, enc, salt, saltpos === "pre") }
+    }),
+    cartesian(
+      ["bcrypt"],
+      [10]
+    ).map(p => {
+      const [alg, saltr] = p
+      return { [propName({ alg, saltr })]: strategies[alg](user, saltr) }
+    }),
+    cartesian(
+      ["pbkdf2"],
+      [1000, 10000],
+      [32],
+      ["sha1", "sha256"]
+    ).map(p => {
+      const [alg, saltr, l, d] = p
+      return { [propName({ alg, saltr, l, d })]: strategies[alg](user, salt, saltr, l, d) }
+    }),
+    // cartesian(
+    //   ["scryptfb"],
+    //   [14],
+    //   [8],
+    //   ["Bw=="],
+    //   ["ewjcFY/Vguy7cC9PE8C+2waKIrYkg2C40AL3oGs7WAvffBiZVr/RqM98t7wlViX5sgQXApxKYF3KL3LiuLjo5w=="]
+    // ).map(p => {
+    //   const [alg, memcost, saltr, sep, signkey] = p
+    //   return { [propName({ alg, memcost, saltr })]: strategies[alg](user, salt, memcost, saltr, sep, signkey) }
+    // }),
+  )
+  return props
+}
+
+const main = () => {
+  const result = users.map(user =>
+    getPasswordHashPartList(user)
+      .reduce((p, c) => ({ ...p, ...c }), user)
+  )
+  const data = JSON.stringify(result, null, 2);
   fs.writeFileSync(`./src/data/users.json`, data);
 }
 
-main().then(() => console.log("done"))
+const test = () => {
+  console.log(strategies["pbkdf2"]({ password: "Test@123" }, "wJuJqLoUFsdXa8k3sFhRlA==", 10000, 20, "sha1"))
+  console.log(strategies["pbkdf2"]({ password: "Test@123" }, "wJuJqLoUFsdXa8k3sFhRlA==", 10000, 32, "sha256"))
+}
+
+main()
+// test()
