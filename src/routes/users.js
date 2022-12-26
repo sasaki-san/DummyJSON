@@ -10,29 +10,9 @@ const convertToExportableFormat = (users, { importable }) => {
 }
 
 /**
- * get bulk users with passwords 
- */
-router.get('/users/:algo', (req, res) => {
-  const { algo } = req.params;
-  const algorithm = algorithms[algo]({
-    ...req.query
-  })
-  algorithm.calc()
-  const exportHashPart = algorithm.exportedHashPart()
-  let users = exportUsers(req.query)
-    .users
-    .map(user => ({
-      ...user,
-      ...exportHashPart
-    }))
-  users = convertToExportableFormat(users, req.query)
-  res.send(users)
-});
-
-/**
  * get bulk passwords (bcrypt)
  */
-router.get('/passwords', (req, res) => {
+router.get('/password_hash', (req, res) => {
   const algorithm = algorithms["bcrypt"]({
     ...req.query
   })
@@ -62,6 +42,27 @@ router.get('/mfa/totp', (req, res) => {
   users = convertToExportableFormat(users, req.query)
   res.send(users)
 });
+
+/**
+ * get bulk users with passwords 
+ */
+router.get('/:algo', (req, res) => {
+  const { algo } = req.params;
+  const algorithm = algorithms[algo]({
+    ...req.query
+  })
+  algorithm.calc()
+  const exportHashPart = algorithm.exportedHashPart()
+  let users = exportUsers(req.query)
+    .users
+    .map(user => ({
+      ...user,
+      ...exportHashPart
+    }))
+  users = convertToExportableFormat(users, req.query)
+  res.send(users)
+});
+
 
 
 module.exports = router;

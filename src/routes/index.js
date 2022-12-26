@@ -1,10 +1,10 @@
 const router = require('express').Router();
 
 // static resource routes
-const echo = require('./echo');
-const echoBulk = require('./echo-bulk');
+const user = require('./user');
+const users = require('./users');
 
-router.use('/echo-bulk', echoBulk);
-router.use('/echo', echo);
+router.use('/users', users);
+router.use('/user', user);
 
 module.exports = router;
