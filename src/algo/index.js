@@ -4,7 +4,7 @@ const { sha256 } = require("./sha256")
 const { sha512 } = require("./sha512")
 const { bcrypt } = require("./bcrypt")
 const { pbkdf2 } = require("./pbkdf2")
-const { scryptFirebase } = require("./scrypt-fb")
+const { scryptFirebase } = require("./scrypt-firebase")
 
 module.exports = {
   md5,

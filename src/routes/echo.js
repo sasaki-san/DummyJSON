@@ -18,8 +18,8 @@ router.get('/:algo', async (req, res) => {
     ...req.query
   })
 
-  algorithm.calc()
-  const calculatedParams = await algorithm.calculatedParams()
+  await algorithm.calc()
+  const calculatedParams = algorithm.calculatedParams()
   const value = algorithm.result()
 
   res.send({
