@@ -1,6 +1,5 @@
 const fs = require('fs/promises');
 const path = require('path');
-const { ENV_VARIABLES } = require('../constants');
 
 const utils = {};
 
@@ -76,18 +75,6 @@ utils.getMultiObjectSubset = function (arr, keys) {
 utils.usernameRegex = /^[a-zA-Z0-9]*$/;
 
 utils.isNumber = num => !Number.isNaN(Number(num));
-
-utils.validateEnvVar = () => {
-  const unsetEnv = ENV_VARIABLES.filter(
-    env => !(typeof process.env[env] !== 'undefined'),
-  );
-
-  if (unsetEnv.length > 0) {
-    throw new Error(
-      `Required ENV variables are not set: [${unsetEnv.join(', ')}]`,
-    );
-  }
-};
 
 utils.trueTypeOf = obj => {
   return Object.prototype.toString

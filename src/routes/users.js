@@ -2,11 +2,15 @@ const router = require('express').Router();
 const { exportUsers, exportUserPasswords, exportUserMfaTotp } = require('../controllers/user-extension');
 const algorithms = require("../algo")
 
-const convertToExportableFormat = (users, { importable }) => {
-  if (importable === "true") {
-    users = users.map(user => JSON.stringify(user)).join("\n")
+const convertToExportableFormat = (users, { format }) => {
+  switch (format) {
+    case "JSON_ARRAY":
+      return "[" + users.map(user => JSON.stringify(user)).join(",\n") + "]"
+    case "JSON_LINE":
+      return users.map(user => JSON.stringify(user)).join("\n")
+    default:
+      return users
   }
-  return users
 }
 
 /**

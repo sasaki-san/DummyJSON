@@ -5,13 +5,10 @@ const injectMiddleWares = require('./src/middleware');
 const errorMiddleware = require('./src/middleware/error');
 const authUser = require('./src/middleware/auth');
 const routes = require('./src/routes');
-const { validateEnvVar, loadDataInMemory } = require('./src/utils/util');
+const { loadDataInMemory } = require('./src/utils/util');
 const { version } = require('./package.json');
 
 const { PORT = 4000, NODE_ENV } = process.env;
-
-// validate if we have all the env variables setup.
-validateEnvVar();
 
 const app = express();
 

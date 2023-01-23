@@ -48,7 +48,7 @@ const commonAlgorithm = ({ algo, plainPassword, encoding, salt, saltEncoding, pr
         ...(salt ? {
           salt: {
             value: salt,
-            encoding: saltEncoding
+            position: prefixed ? "prefix" : "suffix"
           }
         } : {})
       }

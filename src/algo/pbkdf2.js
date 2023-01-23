@@ -4,6 +4,8 @@ const pbkdf2 = ({ plainPassword, encoding, salt, saltEncoding, saltRounds, keyle
 
   let value;
 
+  let phcValue;
+
   if (!plainPassword) {
     throw Error(`You must pass plainPassword parameter`)
   }
@@ -20,12 +22,13 @@ const pbkdf2 = ({ plainPassword, encoding, salt, saltEncoding, saltRounds, keyle
         parseInt(keylen),
         digest
       )
-      value = Buffer.from(hash).toString("base64")
+      hashValue = Buffer.from(hash).toString("base64")
+      value = `$pbkdf2-${digest}$i=${saltRounds},l=${keylen}$${hashValue.substring(0, hashValue.length - 2)}`
     },
 
     result: () => value,
 
-    calculatedParams: () => { salt },
+    calculatedParams: () => { salt, hashValue },
 
     exportedHashPart: () => ({
       custom_password_hash: {
@@ -34,10 +37,6 @@ const pbkdf2 = ({ plainPassword, encoding, salt, saltEncoding, saltRounds, keyle
           value,
           encoding: encoding
         },
-        salt: {
-          value: salt.toString(saltEncoding),
-          encoding: saltEncoding
-        }
       }
     })
 
